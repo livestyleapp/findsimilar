@@ -4,7 +4,6 @@ from PIL import Image
 from DeepImageSearch import Load_Data, Search_Setup
 import wget
 import shutil
-import threading
 
 # Ensure model weights are downloaded only if they don't already exist
 weights_folder = "metadata-files/vgg19"
@@ -70,10 +69,6 @@ def index():
         print("we are in else")
         return jsonify({"Error": "No Images"})
 
-def run_flask():
+if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(debug=True, host="0.0.0.0", port=port, use_reloader=False)
-
-# Start the Flask app in a new thread
-flask_thread = threading.Thread(target=run_flask)
-flask_thread.start()
