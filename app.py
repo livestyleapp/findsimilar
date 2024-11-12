@@ -2,27 +2,23 @@ from flask import Flask, jsonify, request, g
 import os
 from PIL import Image
 from DeepImageSearch import Load_Data, Search_Setup
-import wget
 import shutil
 import threading
 
-# Ensure model weights are downloaded only if they don't already exist
+# Ensure model weights are available locally
 weights_folder = "metadata-files/vgg19"
-weights_files = ["image_features_vectors.idx", "image_data_features.pkl"]
+weights_files = ["image_features_vectors.idx", "image_data_features1.pkl"]
 
 # Create the folder if it doesn't exist
 os.makedirs(weights_folder, exist_ok=True)
 
-# Download the weights if they're missing
+# Check if the weights files exist locally
 if not all(os.path.exists(os.path.join(weights_folder, wf)) for wf in weights_files):
-    print("Downloading Weights")
-    wget.download("https://download1326.mediafire.com/1ga0rvjg6qkgha8oOPFVHY2V_WLYwde6gCWBXT1FQlhATeqS-GNBaZrzcuNuwZSCLs76qScw1vWYEhFSLNiKLjkMJX3Gog3gCSUz2VzV2IRE5ZfZOySSbF5HHww8AU9_dYJNZIriOyGNI4hTosvysfJZvpOY93jRC2z77H9N_66D/ekg10hcq141v5hi/image_features_vectors.idx")
-    wget.download("https://download1584.mediafire.com/29g7k41bwpqg5eCW0sOQnrNX853Xxi74F66GoMquaXqTH4jeAPyMKr4H8N2vrtBfjscyLDHOJxyMusdAfZEMRq7ZbKzG3hKPPbjf_YIDPcgAf3Keca8UzD6kAPro24YbwhV_63uLYfYWAG9ka8c-L_rCFZ09alLyplZ3OTS_uKfC/0aemngb1qh3t9cn/image_data_features.pkl")
-    print("Weights Downloaded")
-    shutil.move("image_features_vectors.idx", os.path.join(weights_folder, "image_features_vectors.idx"))
-    shutil.move("image_data_features.pkl", os.path.join(weights_folder, "image_data_features.pkl"))
+    print("Weights files are missing. Please ensure they are available locally.")
+    # Optionally, you can raise an error or exit the program if the files are not found
+    # raise FileNotFoundError("Required weights files are missing.")
 else:
-    print("Weights already exist. Skipping download.")
+    print("Using local weights files.")
 
 # Load data
 print("Loading Data")
