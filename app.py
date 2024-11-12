@@ -83,9 +83,13 @@ def index():
             
 
 # Function to run Flask in a thread
-def run_flask():
+# def run_flask():
     # app.run(debug=True, host="127.0.0.1", port=5000, use_reloader=False)
-    app.run(debug=True, host="0.0.0.0", port=5000, use_reloader=False)
+    # app.run(debug=True, host="0.0.0.0", port=5000, use_reloader=False)
+
+def run_flask():
+    port = int(os.environ.get("PORT", 5000))
+    app.run(debug=True, host="0.0.0.0", port=port, use_reloader=False)
 
 
 # Start the Flask app in a new thread
