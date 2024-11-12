@@ -27,14 +27,14 @@ else:
     print("Weights already exist. Skipping download.")
 
 # Load data and set up the model
-print("Loading Data")
-image_list = Load_Data().from_folder(folder_list=["Data"])
-print("Data Loaded")
-print(f"Number of images loaded: {len(image_list)}")
+# print("Loading Data")
+# image_list = Load_Data().from_folder(folder_list=["Data"])
+# print("Data Loaded")
+# print(f"Number of images loaded: {len(image_list)}")
 
-print("Loading Model")
-st = Search_Setup(image_list, model_name="vgg19", pretrained=True)
-print("Model Loaded Successfully: vgg19")
+# print("Loading Model")
+# st = Search_Setup(image_list, model_name="vgg19", pretrained=True)
+# print("Model Loaded Successfully: vgg19")
 
 #meta = st.get_image_metadata_file()
 app = Flask(__name__)
