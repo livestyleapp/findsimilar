@@ -1,12 +1,10 @@
-from flask import Flask, jsonify
-from flask import request
+from flask import Flask, jsonify, request, g
 import os
 from PIL import Image
 from DeepImageSearch import Load_Data, Search_Setup
 import wget
 import shutil
 import threading
-
 
 # Ensure model weights are downloaded only if they don't already exist
 weights_folder = "metadata-files/vgg19"
@@ -26,17 +24,12 @@ if not all(os.path.exists(os.path.join(weights_folder, wf)) for wf in weights_fi
 else:
     print("Weights already exist. Skipping download.")
 
-# Load data and set up the model
-# print("Loading Data")
-# image_list = Load_Data().from_folder(folder_list=["Data"])
-# print("Data Loaded")
-# print(f"Number of images loaded: {len(image_list)}")
+# Load data
+print("Loading Data")
+image_list = Load_Data().from_folder(folder_list=["Data"])
+print("Data Loaded")
+print(f"Number of images loaded: {len(image_list)}")
 
-# print("Loading Model")
-# st = Search_Setup(image_list, model_name="vgg19", pretrained=True)
-# print("Model Loaded Successfully: vgg19")
-
-#meta = st.get_image_metadata_file()
 app = Flask(__name__)
 
 def is_valid_image(file):
@@ -47,17 +40,17 @@ def is_valid_image(file):
     except:
         return False
 
-
-
 @app.route('/', methods=['POST', "GET"])
 def new():
     return jsonify({"Testing": "Hello"})
 
-
 @app.route('/api', methods=['POST', "GET"])
 def index():
+    if 'st' not in g:
+        print("Loading Model")
+        g.st = Search_Setup(image_list, model_name="vgg19", pretrained=True)
+        print("Model Loaded Successfully: vgg19")
     
-    print("We are here")
     if request.method == 'POST':
         print("Post here")
         image = request.files['fileup']
@@ -66,31 +59,20 @@ def index():
         newimage.save("Ahmed.jpg")
         print("Image Saved")
         print("we are here")
-        x = st.get_image_metadata_file()
+        x = g.st.get_image_metadata_file()
         print("metadata loaded")
-        similar_images = st.get_similar_images(image_path="Ahmed.jpg", number_of_images=10)
+        similar_images = g.st.get_similar_images(image_path="Ahmed.jpg", number_of_images=10)
         print("similar images")
-        #os.remove(newimage.filename) 
-        images  = []
-        for index in similar_images:
-            images.append(similar_images[index])
+        images = [similar_images[index] for index in similar_images]
         print("Images are done")
         return jsonify({"Testing": images})
-        
     else:
         print("we are in else")
         return jsonify({"Error": "No Images"})
-            
-
-# Function to run Flask in a thread
-# def run_flask():
-#     app.run(debug=True, host="127.0.0.1", port=5000, use_reloader=False)
-    # app.run(debug=True, host="0.0.0.0", port=5000, use_reloader=False)
 
 def run_flask():
     port = int(os.environ.get("PORT", 5000))
     app.run(debug=True, host="0.0.0.0", port=port, use_reloader=False)
-
 
 # Start the Flask app in a new thread
 flask_thread = threading.Thread(target=run_flask)
