@@ -4,6 +4,7 @@ from PIL import Image
 from DeepImageSearch import Load_Data, Search_Setup
 import wget
 import shutil
+import threading
 
 # Ensure model weights are downloaded only if they don't already exist
 weights_folder = "metadata-files/vgg19"
@@ -36,37 +37,55 @@ def is_valid_image(file):
         image = Image.open(file)
         image.verify()
         return True
-    except:
+    except Exception as e:
+        print(f"Invalid image: {e}")
         return False
+
+def load_model():
+    global st
+    print("Loading Model in Background")
+    st = Search_Setup(image_list, model_name="vgg19", pretrained=True)
+    print("Model Loaded Successfully: vgg19")
+
+# Start model loading in a separate thread
+threading.Thread(target=load_model).start()
 
 @app.route('/', methods=['POST', "GET"])
 def new():
+    print("Received request on /")
     return jsonify({"Testing": "Hello"})
 
 @app.route('/api', methods=['POST', "GET"])
-def index():
-    if 'st' not in g:
-        print("Loading Model")
-        g.st = Search_Setup(image_list, model_name="vgg19", pretrained=True)
-        print("Model Loaded Successfully: vgg19")
-    
+def index(): 
     if request.method == 'POST':
-        print("Post here")
-        image = request.files['fileup']
+        print("Received POST request on /api")
+        image = request.files.get('fileup')
+        if not image:
+            print("No file uploaded")
+            return jsonify({"Error": "No file uploaded"}), 400
+
+        if not is_valid_image(image):
+            print("Uploaded file is not a valid image")
+            return jsonify({"Error": "Invalid image file"}), 400
+
         newimage = Image.open(image)
         print("Image Loaded")
         newimage.save("Ahmed.jpg")
-        print("Image Saved")
-        print("we are here")
-        x = g.st.get_image_metadata_file()
-        print("metadata loaded")
-        similar_images = g.st.get_similar_images(image_path="Ahmed.jpg", number_of_images=10)
-        print("similar images")
-        images = [similar_images[index] for index in similar_images]
-        print("Images are done")
-        return jsonify({"Testing": images})
+        print("Image Saved as Ahmed.jpg")
+
+        try:
+            x = st.get_image_metadata_file()
+            print("Metadata loaded")
+            similar_images = st.get_similar_images(image_path="Ahmed.jpg", number_of_images=10)
+            print("Similar images found")
+            images = [similar_images[index] for index in similar_images]
+            print("Images processed")
+            return jsonify({"Testing": images})
+        except Exception as e:
+            print(f"Error processing image: {e}")
+            return jsonify({"Error": "Failed to process image"}), 500
     else:
-        print("we are in else")
+        print("Received GET request on /api")
         return jsonify({"Error": "No Images"})
 
 if __name__ == "__main__":
