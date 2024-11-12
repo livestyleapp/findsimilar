@@ -2,18 +2,11 @@ from flask import Flask, jsonify, request
 import os
 from PIL import Image
 from DeepImageSearch import Load_Data, Search_Setup
-import wget
 import shutil
+import threading
+import wget
 
 app = Flask(__name__)
-
-# Load data and setup the model
-print("Loading Data")
-image_list = Load_Data().from_folder(folder_list=["Data"])
-print("Data Loaded")
-print("Loading Model")
-st = Search_Setup(image_list, model_name="vgg19", pretrained=True)
-print("Model Loaded")
 
 # Ensure model weights are downloaded only if they don't already exist
 weights_folder = "metadata-files/vgg19"
@@ -33,39 +26,62 @@ if not all(os.path.exists(os.path.join(weights_folder, wf)) for wf in weights_fi
 else:
     print("Weights already exist. Skipping download.")
 
-# Function to check if uploaded file is a valid image
-def is_valid_image(file):
-    try:
-        image = Image.open(file)
-        image.verify()
-        return True
-    except:
-        return False
+# Load data and set up the model
+print("Loading Data")
+image_list = Load_Data().from_folder(folder_list=["Data"])
+print("Data Loaded")
+print(f"Number of images loaded: {len(image_list)}")
 
-# Route for testing
-@app.route('/', methods=['POST', 'GET'])
+print("Loading Model")
+st = Search_Setup(image_list, model_name="vgg19", pretrained=True)
+print("Model Loaded Successfully: vgg19")
+
+# Define Flask routes
+@app.route("/", methods=["POST", "GET"])
 def new():
     return jsonify({"Testing": "Hello"})
 
-# Main route for handling image upload and finding similar images
-@app.route('/api', methods=['POST', 'GET'])
+@app.route("/api", methods=["POST", "GET"])
 def index():
-    if request.method == 'POST':
-        image = request.files.get('fileup')
-        if image and is_valid_image(image):
-            newimage = Image.open(image)
-            newimage.save("uploaded_image.jpg")
-            
-            similar_images = st.get_similar_images(image_path="uploaded_image.jpg", number_of_images=10)
-            images = [similar_images[index] for index in similar_images]
+    print("API endpoint hit")
+    if request.method == "POST":
+        print("Received POST request")
+        image = request.files.get("fileup")
+        print("Image received:", image)
 
-            return jsonify({"similar_images": images})
+        if image:
+            try:
+                print("Attempting to open image")
+                newimage = Image.open(image)
+                newimage.save("uploaded_image.jpg")
+                print("Image saved as uploaded_image.jpg")
+
+                print("Searching for similar images")
+                similar_images = st.get_similar_images(
+                    image_path="uploaded_image.jpg", number_of_images=10
+                )
+                images = [similar_images[index] for index in similar_images]
+                print("Similar images found:", images)
+                return jsonify({"similar_images": images})
+            except Exception as es:
+                print("Error occurred:", es)
+                return jsonify({"error": str(es)}), 400
         else:
+            print("Invalid image file")
             return jsonify({"Error": "Invalid image file."}), 400
     else:
+        print("No image provided")
         return jsonify({"Error": "No image provided."}), 400
 
-# Main entry point
-if __name__ == '__main__':
-    port = int(os.environ.get("PORT", 5000))
-    app.run(debug=True, host="0.0.0.0", port=port)
+# Function to run Flask in a thread
+# def run_flask():
+#     app.run(debug=True, host="127.0.0.1", port=5000, use_reloader=False)
+
+def run_flask():
+    app.run(debug=True, host="0.0.0.0", port=int(os.environ.get("PORT", 5000)), use_reloader=False)
+
+
+
+# Start the Flask app in a new thread
+flask_thread = threading.Thread(target=run_flask)
+flask_thread.start()
