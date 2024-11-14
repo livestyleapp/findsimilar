@@ -1,8 +1,7 @@
-from flask import Flask, jsonify, request, g
+from flask import Flask, jsonify, request
 import os
 from PIL import Image
 from DeepImageSearch import Load_Data, Search_Setup
-import shutil
 import threading
 
 # Ensure model weights are available locally
@@ -15,18 +14,19 @@ os.makedirs(weights_folder, exist_ok=True)
 # Check if the weights files exist locally
 if not all(os.path.exists(os.path.join(weights_folder, wf)) for wf in weights_files):
     print("Weights files are missing. Please ensure they are available locally.")
-    # Optionally, you can raise an error or exit the program if the files are not found
-    # raise FileNotFoundError("Required weights files are missing.")
 else:
     print("Using local weights files.")
 
-# Load data
+# Load data only once
 print("Loading Data")
 image_list = Load_Data().from_folder(folder_list=["Data"])
 print("Data Loaded")
 print(f"Number of images loaded: {len(image_list)}")
 
 app = Flask(__name__)
+
+# Global variable for Search_Setup
+st = None
 
 def is_valid_image(file):
     try:
@@ -41,7 +41,8 @@ def load_model():
     global st
     print("Loading Model in Background")
     st = Search_Setup(image_list, model_name="vgg19", pretrained=True)
-    print("Model Loaded Successfully: vgg19")
+    st.get_image_metadata_file()  # Load metadata once here
+    print("Model and Metadata Loaded Successfully: vgg19")
 
 # Start model loading in a separate thread
 threading.Thread(target=load_model).start()
@@ -70,8 +71,7 @@ def index():
         print("Image Saved as Ahmed.jpg")
 
         try:
-            x = st.get_image_metadata_file()
-            print("Metadata loaded")
+            # Retrieve similar images without reloading metadata
             similar_images = st.get_similar_images(image_path="Ahmed.jpg", number_of_images=10)
             print("Similar images found")
             images = [similar_images[index] for index in similar_images]
